@@ -1,0 +1,989 @@
+{
+  "tool": "Authorization Testing Lab",
+  "version": "0.1",
+  "report_id": "88cbb828-a386-4c1d-bd3c-c187b2d58692",
+  "observed_at": "2026-10-25T15:33:56.296667+00:00",
+  "scope": "13 seeded cases per mode, over an ephemeral loopback HTTP server; fresh data for each case.",
+  "limits": [
+    "Synthetic local policy only; not an external website assessment.",
+    "Persona selection simulates authentication.",
+    "No TLS, credential, race-condition or exhaustive authorization audit.",
+    "MATCH means only the listed assertions passed."
+  ],
+  "cases": [
+    {
+      "id": "ATL-001",
+      "title": "Anonymous invoice read",
+      "actor": null,
+      "method": "GET",
+      "path": "invoices/1001",
+      "expected": 401,
+      "mode": "weak",
+      "observed": {
+        "status": 401,
+        "body": {
+          "error": "Choose a demo persona first.",
+          "_decision": {
+            "mode": "weak",
+            "actor": null,
+            "method": "GET",
+            "resource": "invoices/1001",
+            "status": 401,
+            "reason": "No authenticated demo persona"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-002",
+      "title": "Owner reads own invoice",
+      "actor": "alice",
+      "method": "GET",
+      "path": "invoices/1001",
+      "expected": 200,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1001",
+          "owner": "alice",
+          "tenant": "north",
+          "amount": "125.00",
+          "note": "Alice demo invoice",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "invoices/1001",
+            "status": 200,
+            "reason": "VULNERABLE: invoice ownership and tenant were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-003",
+      "title": "Member reads peer invoice",
+      "actor": "alice",
+      "method": "GET",
+      "path": "invoices/1002",
+      "expected": 403,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1002",
+          "owner": "bob",
+          "tenant": "north",
+          "amount": "240.00",
+          "note": "Bob demo invoice",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "invoices/1002",
+            "status": 200,
+            "reason": "VULNERABLE: invoice ownership and tenant were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-004",
+      "title": "Member reads across tenants",
+      "actor": "alice",
+      "method": "GET",
+      "path": "invoices/2001",
+      "expected": 403,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "2001",
+          "owner": "carol",
+          "tenant": "south",
+          "amount": "360.00",
+          "note": "Carol demo invoice",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "invoices/2001",
+            "status": 200,
+            "reason": "VULNERABLE: invoice ownership and tenant were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-005",
+      "title": "Member edits peer invoice",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "invoices/1002",
+      "body": {
+        "note": "Changed by Alice in the lab"
+      },
+      "expected": 403,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1002",
+          "owner": "bob",
+          "tenant": "north",
+          "amount": "240.00",
+          "note": "Changed by Alice in the lab",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "invoices/1002",
+            "status": 200,
+            "reason": "VULNERABLE: invoice ownership and tenant were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-006",
+      "title": "Owner edits own invoice",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "invoices/1001",
+      "body": {
+        "note": "Owner update in the lab"
+      },
+      "expected": 200,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1001",
+          "owner": "alice",
+          "tenant": "north",
+          "amount": "125.00",
+          "note": "Owner update in the lab",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "invoices/1001",
+            "status": 200,
+            "reason": "VULNERABLE: invoice ownership and tenant were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-007",
+      "title": "Member accesses admin listing",
+      "actor": "alice",
+      "method": "GET",
+      "path": "admin/users",
+      "expected": 403,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "users": [
+            {
+              "username": "alice",
+              "display_name": "Alice Demo",
+              "role": "member",
+              "tenant": "north"
+            },
+            {
+              "username": "bob",
+              "display_name": "Bob Demo",
+              "role": "member",
+              "tenant": "north"
+            },
+            {
+              "username": "carol",
+              "display_name": "Carol Demo",
+              "role": "member",
+              "tenant": "south"
+            },
+            {
+              "username": "admin",
+              "display_name": "North Admin",
+              "role": "admin",
+              "tenant": "north"
+            }
+          ],
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "admin/users",
+            "status": 200,
+            "reason": "VULNERABLE: role and tenant scope were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-008",
+      "title": "Tenant admin reads peer invoice",
+      "actor": "admin",
+      "method": "GET",
+      "path": "invoices/1002",
+      "expected": 200,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1002",
+          "owner": "bob",
+          "tenant": "north",
+          "amount": "240.00",
+          "note": "Bob demo invoice",
+          "_decision": {
+            "mode": "weak",
+            "actor": "admin",
+            "method": "GET",
+            "resource": "invoices/1002",
+            "status": 200,
+            "reason": "VULNERABLE: invoice ownership and tenant were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-009",
+      "title": "Tenant admin reads another tenant",
+      "actor": "admin",
+      "method": "GET",
+      "path": "invoices/2001",
+      "expected": 403,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "2001",
+          "owner": "carol",
+          "tenant": "south",
+          "amount": "360.00",
+          "note": "Carol demo invoice",
+          "_decision": {
+            "mode": "weak",
+            "actor": "admin",
+            "method": "GET",
+            "resource": "invoices/2001",
+            "status": 200,
+            "reason": "VULNERABLE: invoice ownership and tenant were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-010",
+      "title": "Admin listing stays within tenant",
+      "actor": "admin",
+      "method": "GET",
+      "path": "admin/users",
+      "expected": 200,
+      "check": "tenant_scope",
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "users": [
+            {
+              "username": "alice",
+              "display_name": "Alice Demo",
+              "role": "member",
+              "tenant": "north"
+            },
+            {
+              "username": "bob",
+              "display_name": "Bob Demo",
+              "role": "member",
+              "tenant": "north"
+            },
+            {
+              "username": "carol",
+              "display_name": "Carol Demo",
+              "role": "member",
+              "tenant": "south"
+            },
+            {
+              "username": "admin",
+              "display_name": "North Admin",
+              "role": "admin",
+              "tenant": "north"
+            }
+          ],
+          "_decision": {
+            "mode": "weak",
+            "actor": "admin",
+            "method": "GET",
+            "resource": "admin/users",
+            "status": 200,
+            "reason": "VULNERABLE: role and tenant scope were not checked"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true,
+        "tenant_scope": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-011",
+      "title": "Member changes display name",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "profile",
+      "body": {
+        "display_name": "Alice Updated"
+      },
+      "expected": 200,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "username": "alice",
+          "display_name": "Alice Updated",
+          "role": "member",
+          "tenant": "north",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "profile",
+            "status": 200,
+            "reason": "VULNERABLE: client fields updated protected attributes"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-012",
+      "title": "Member assigns own admin role",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "profile",
+      "body": {
+        "role": "admin"
+      },
+      "expected": 400,
+      "followup": {
+        "status": 200,
+        "body": {
+          "users": [
+            {
+              "username": "alice",
+              "display_name": "Alice Demo",
+              "role": "admin",
+              "tenant": "north"
+            },
+            {
+              "username": "bob",
+              "display_name": "Bob Demo",
+              "role": "member",
+              "tenant": "north"
+            },
+            {
+              "username": "carol",
+              "display_name": "Carol Demo",
+              "role": "member",
+              "tenant": "south"
+            },
+            {
+              "username": "admin",
+              "display_name": "North Admin",
+              "role": "admin",
+              "tenant": "north"
+            }
+          ],
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "admin/users",
+            "status": 200,
+            "reason": "VULNERABLE: role and tenant scope were not checked"
+          }
+        }
+      },
+      "followup_expected": 403,
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "username": "alice",
+          "display_name": "Alice Demo",
+          "role": "admin",
+          "tenant": "north",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "profile",
+            "status": 200,
+            "reason": "VULNERABLE: client fields updated protected attributes"
+          }
+        }
+      },
+      "checks": {
+        "status_matches": false,
+        "followup_status_matches": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-013",
+      "title": "Member assigns own tenant",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "profile",
+      "body": {
+        "tenant": "south"
+      },
+      "expected": 400,
+      "followup": {
+        "status": 200,
+        "body": {
+          "username": "alice",
+          "display_name": "Alice Demo",
+          "role": "member",
+          "tenant": "south",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "me",
+            "status": 200,
+            "reason": "Current server-side persona"
+          }
+        }
+      },
+      "check": "tenant_unchanged",
+      "mode": "weak",
+      "observed": {
+        "status": 200,
+        "body": {
+          "username": "alice",
+          "display_name": "Alice Demo",
+          "role": "member",
+          "tenant": "south",
+          "_decision": {
+            "mode": "weak",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "profile",
+            "status": 200,
+            "reason": "VULNERABLE: client fields updated protected attributes"
+          }
+        }
+      },
+      "checks": {
+        "status_matches": false,
+        "tenant_unchanged": false
+      },
+      "policy_match": false
+    },
+    {
+      "id": "ATL-001",
+      "title": "Anonymous invoice read",
+      "actor": null,
+      "method": "GET",
+      "path": "invoices/1001",
+      "expected": 401,
+      "mode": "hardened",
+      "observed": {
+        "status": 401,
+        "body": {
+          "error": "Choose a demo persona first.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": null,
+            "method": "GET",
+            "resource": "invoices/1001",
+            "status": 401,
+            "reason": "No authenticated demo persona"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-002",
+      "title": "Owner reads own invoice",
+      "actor": "alice",
+      "method": "GET",
+      "path": "invoices/1001",
+      "expected": 200,
+      "mode": "hardened",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1001",
+          "owner": "alice",
+          "tenant": "north",
+          "amount": "125.00",
+          "note": "Alice demo invoice",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "invoices/1001",
+            "status": 200,
+            "reason": "Owner/admin AND tenant check allowed"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-003",
+      "title": "Member reads peer invoice",
+      "actor": "alice",
+      "method": "GET",
+      "path": "invoices/1002",
+      "expected": 403,
+      "mode": "hardened",
+      "observed": {
+        "status": 403,
+        "body": {
+          "error": "Invoice access denied.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "invoices/1002",
+            "status": 403,
+            "reason": "Owner/admin AND tenant check denied"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-004",
+      "title": "Member reads across tenants",
+      "actor": "alice",
+      "method": "GET",
+      "path": "invoices/2001",
+      "expected": 403,
+      "mode": "hardened",
+      "observed": {
+        "status": 403,
+        "body": {
+          "error": "Invoice access denied.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "invoices/2001",
+            "status": 403,
+            "reason": "Owner/admin AND tenant check denied"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-005",
+      "title": "Member edits peer invoice",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "invoices/1002",
+      "body": {
+        "note": "Changed by Alice in the lab"
+      },
+      "expected": 403,
+      "mode": "hardened",
+      "observed": {
+        "status": 403,
+        "body": {
+          "error": "Invoice access denied.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "invoices/1002",
+            "status": 403,
+            "reason": "Owner/admin AND tenant check denied"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-006",
+      "title": "Owner edits own invoice",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "invoices/1001",
+      "body": {
+        "note": "Owner update in the lab"
+      },
+      "expected": 200,
+      "mode": "hardened",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1001",
+          "owner": "alice",
+          "tenant": "north",
+          "amount": "125.00",
+          "note": "Owner update in the lab",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "invoices/1001",
+            "status": 200,
+            "reason": "Owner/admin AND tenant check allowed"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-007",
+      "title": "Member accesses admin listing",
+      "actor": "alice",
+      "method": "GET",
+      "path": "admin/users",
+      "expected": 403,
+      "mode": "hardened",
+      "observed": {
+        "status": 403,
+        "body": {
+          "error": "Tenant administrator role required.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "admin/users",
+            "status": 403,
+            "reason": "Server-side role check denied"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-008",
+      "title": "Tenant admin reads peer invoice",
+      "actor": "admin",
+      "method": "GET",
+      "path": "invoices/1002",
+      "expected": 200,
+      "mode": "hardened",
+      "observed": {
+        "status": 200,
+        "body": {
+          "id": "1002",
+          "owner": "bob",
+          "tenant": "north",
+          "amount": "240.00",
+          "note": "Bob demo invoice",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "admin",
+            "method": "GET",
+            "resource": "invoices/1002",
+            "status": 200,
+            "reason": "Owner/admin AND tenant check allowed"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-009",
+      "title": "Tenant admin reads another tenant",
+      "actor": "admin",
+      "method": "GET",
+      "path": "invoices/2001",
+      "expected": 403,
+      "mode": "hardened",
+      "observed": {
+        "status": 403,
+        "body": {
+          "error": "Invoice access denied.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "admin",
+            "method": "GET",
+            "resource": "invoices/2001",
+            "status": 403,
+            "reason": "Owner/admin AND tenant check denied"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-010",
+      "title": "Admin listing stays within tenant",
+      "actor": "admin",
+      "method": "GET",
+      "path": "admin/users",
+      "expected": 200,
+      "check": "tenant_scope",
+      "mode": "hardened",
+      "observed": {
+        "status": 200,
+        "body": {
+          "users": [
+            {
+              "username": "alice",
+              "display_name": "Alice Demo",
+              "role": "member",
+              "tenant": "north"
+            },
+            {
+              "username": "bob",
+              "display_name": "Bob Demo",
+              "role": "member",
+              "tenant": "north"
+            },
+            {
+              "username": "admin",
+              "display_name": "North Admin",
+              "role": "admin",
+              "tenant": "north"
+            }
+          ],
+          "_decision": {
+            "mode": "hardened",
+            "actor": "admin",
+            "method": "GET",
+            "resource": "admin/users",
+            "status": 200,
+            "reason": "Role and tenant scope enforced"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true,
+        "tenant_scope": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-011",
+      "title": "Member changes display name",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "profile",
+      "body": {
+        "display_name": "Alice Updated"
+      },
+      "expected": 200,
+      "mode": "hardened",
+      "observed": {
+        "status": 200,
+        "body": {
+          "username": "alice",
+          "display_name": "Alice Updated",
+          "role": "member",
+          "tenant": "north",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "profile",
+            "status": 200,
+            "reason": "Only display_name is writable"
+          }
+        }
+      },
+      "followup": null,
+      "checks": {
+        "status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-012",
+      "title": "Member assigns own admin role",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "profile",
+      "body": {
+        "role": "admin"
+      },
+      "expected": 400,
+      "followup": {
+        "status": 403,
+        "body": {
+          "error": "Tenant administrator role required.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "admin/users",
+            "status": 403,
+            "reason": "Server-side role check denied"
+          }
+        }
+      },
+      "followup_expected": 403,
+      "mode": "hardened",
+      "observed": {
+        "status": 400,
+        "body": {
+          "error": "Unsupported profile fields.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "profile",
+            "status": 400,
+            "reason": "Writable-field allowlist rejected the request"
+          }
+        }
+      },
+      "checks": {
+        "status_matches": true,
+        "followup_status_matches": true
+      },
+      "policy_match": true
+    },
+    {
+      "id": "ATL-013",
+      "title": "Member assigns own tenant",
+      "actor": "alice",
+      "method": "PATCH",
+      "path": "profile",
+      "body": {
+        "tenant": "south"
+      },
+      "expected": 400,
+      "followup": {
+        "status": 200,
+        "body": {
+          "username": "alice",
+          "display_name": "Alice Demo",
+          "role": "member",
+          "tenant": "north",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "GET",
+            "resource": "me",
+            "status": 200,
+            "reason": "Current server-side persona"
+          }
+        }
+      },
+      "check": "tenant_unchanged",
+      "mode": "hardened",
+      "observed": {
+        "status": 400,
+        "body": {
+          "error": "Unsupported profile fields.",
+          "_decision": {
+            "mode": "hardened",
+            "actor": "alice",
+            "method": "PATCH",
+            "resource": "profile",
+            "status": 400,
+            "reason": "Writable-field allowlist rejected the request"
+          }
+        }
+      },
+      "checks": {
+        "status_matches": true,
+        "tenant_unchanged": true
+      },
+      "policy_match": true
+    }
+  ]
+}
